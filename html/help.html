@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Help</title>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css" />
+    <style>
+        .spinner {
+            border: 4px solid #535353;
+            border-top: 4px solid #ffb300;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-dl-color {
+            border-top: 4px solid #000;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/" style="margin-top: 2%;">back</a>
+    <h1>Help</h1>
+    <p>Yt-dlp + Tag Editor is a fairly plug and play application. On this page, you will find details and explanations
+        on how the site functions</p>
+    <h2>Usage</h2>
+    <p>1. Find a Youtube video you want to download, and paste it into the "Youtube URL" input</p>
+    <label>Youtube URL</label>
+    <input type="text" name="url-input" id="url-input" value="https://youtu.be/DU3Rezgt-TE?si=zxVuwDVVgMwnOCCX" />
+
+    <p>2. Click the "Add to queue" button to add the url to the download queue</p>
+    <button onclick="addQueueItem()" style="margin-top: 1%">Add to queue (Click me!)</button>
+    <span id="message"></span>
+
+    <p>3. The queue will be populated. To edit metadata and download options, click "Show Details" under the queue item
+        you want to edit</p>
+    <p><i>Note: Queue will be cleared if the page reloads!</i></p>
+    <section style="margin: 1rem 0" id="q-section">
+        <b>Queue</b>
+
+        <ul id="queue-list"></ul>
+    </section>
+
+    <p>4. When ready to download, click the "Download" button under the "Add to queue" button. Note: the help page will just simulate downloading</p>
+    <button onclick="fakeDownload()" id="dl-button" style="margin-top: 2%">Download</button>
+    <label for="dl-progress" id="dl-progress-label" style="margin-top: 2%">Download not started</label>
+    <progress id="dl-progress">progress</progress>
+
+    <p>5. The backend will start downloading your videos, tagging them to your liking, zipping all downloads then
+        serving it back to you in the browser</p>
+    <p>Take note of the progress bar underneith the "Download" button and spinner icons next to queue items for progress</p>
+    <p>6. Once file is served to the browser, automatic cleanup happens on the server</p>
+
+    <h1>Supported URLs</h1>
+    <ul>
+        <li>Youtube share links</li>
+        <li>Youtube URL links</li>
+        <li>Youtube playlist share links<ul>
+                <li>When wanting a single video from a playlist, use the video's "share" url!</li>
+            </ul>
+        </li>
+        <li>Eventually, any yt-dlp <a href="https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md">supported site</a></li>
+    </ul>
+
+    <script>
+        // faux downloading
+        async function fakeDownload() {
+            const queueItems = document.querySelectorAll("#queue-list li");
+            document.getElementById("dl-progress").max = queueItems.length;
+            
+            let idx = 0;
+            for await (let item of queueItems) {
+                const spinner = item.querySelector(".spinner");
+                spinner.classList.toggle("hidden");
+
+                const title = item.querySelector(".title-input").value;
+                updateDownloadProgressLabel(`Downloading ${title}...`);
+                await new Promise((resolve) => {
+                    setTimeout(() => {
+                        spinner.classList.add("hidden");
+                        resolve();
+                    }, 3000);
+                });
+                idx++;
+                updateDownloadProgressBar(idx);
+            }
+            updateDownloadProgressBar(idx);
+            updateDownloadProgressLabel(`Finished downloading ${idx} videos~!`);
+        }
+    </script>
+    <script src="./js/util.js"></script>
+</body>
+
+</html>

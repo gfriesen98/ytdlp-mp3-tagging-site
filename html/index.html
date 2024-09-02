@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>ytdlp tag editor</title>
+  <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css" />
+  <style>
+    .spinner {
+      border: 4px solid #535353;
+      border-top: 4px solid #ffb300;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-left: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinner-dl-color {
+      border-top: 4px solid #000;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <span style="margin-top: 2%;">
+    <a href="/about.html">about</a>
+    <a href="/help.html">help</a>
+  </span>
+  <h1>Yt-dlp + Tag Editor</h1>
+  <label>Youtube URL</label>
+  <input type="text" name="url-input" id="url-input" />
+  <span id="message"></span>
+
+  <button onclick="addQueueItem()" style="margin-top: 1%">Add to queue</button>
+
+  <button onclick="startDownload()" id="dl-button" style="margin-top: 2%" disabled>Download</button>
+
+  <label for="dl-progress" id="dl-progress-label" style="margin: 2rem 0 0 0">Download not started</label>
+  <progress id="dl-progress">progress</progress>
+
+  <section style="margin: 1rem 0">
+    <b>Queue</b>
+
+    <ul id="queue-list"></ul>
+  </section>
+  <script src="./js/util.js"></script>
+</body>
+
+</html>

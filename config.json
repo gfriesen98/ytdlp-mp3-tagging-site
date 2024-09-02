@@ -1,0 +1,5 @@
+{
+  "PORT": "6969",
+  "YTDLP_BINARY": "yt-dlp",
+  "FFMPEG_BINARY": "ffmpeg"
+}
