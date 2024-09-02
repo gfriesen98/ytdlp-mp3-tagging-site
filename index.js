@@ -104,7 +104,12 @@ app.post('/api/ytdlp/download', async (req, res) => {
         const fullFilePath = `${downloadDestination}/${metadata.title}.${downloadOptions.audioOnly ? downloadOptions.audioFormat : downloadOptions.videoFormat}`;
 
         // ensure download path exists
-        await fs.promises.mkdir(downloadDestination, { recursive: true });
+        try {
+            await fs.promises.mkdir(downloadDestination, { recursive: true });
+        } catch (error) {
+            console.error(error);
+            return res.json({ success: false, message: `Failed to create download directory: ${error.message}` });
+        }
 
         if (downloadOptions.audioOnly) {
             console.log("Downloading audio only...");

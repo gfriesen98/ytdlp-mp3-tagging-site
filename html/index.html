@@ -41,6 +41,8 @@
   <span style="margin-top: 2%;">
     <a href="/about.html">about</a>
     <a href="/help.html">help</a>
+    <span style="float: right" id="cVer"></span>
+    <span style="float: right" id="sId"></span>
   </span>
   <h1>Yt-dlp + Tag Editor</h1>
   <label>Youtube URL</label>
@@ -60,6 +62,32 @@
     <ul id="queue-list"></ul>
   </section>
   <script src="./js/util.js"></script>
+  <script>
+    window.onload = async () => {
+      document.getElementById("sId").innerHTML = `sessionId (for debugging): <code>${sessionId}</code>`;
+      let currVersion = "";
+      let githubVersion = "";
+      const currVersionRes = await fetch("/api/ytdlp/version");
+      const currVersionJson = await currVersionRes.json();
+      if (currVersionJson.success) {
+        currVersion = currVersionJson.message;
+      }
+
+      const ghVersionRes = await fetch("https://api.github.com/repos/yt-dlp/yt-dlp/releases");
+      const ghVersionJson = await ghVersionRes.json();
+      if (ghVersionRes.status === 200) {
+        githubVersion = ghVersionJson[0].tag_name;
+      }
+
+      console.log(`yt-dlp version in use: ${currVersion}\nyt-dlp github latest version: ${githubVersion}`);
+      let span = document.getElementById("cVer");
+      if (currVersion != githubVersion) {
+        span.innerHTML = `Current yt-dlp version: <code>${currVersion}</code>. Update available!`;
+      } else {
+        span.innerHTML = `Current yt-dlp version: <code>${currVersion}</code>`;
+      }
+    }
+  </script>
 </body>
 
 </html>
