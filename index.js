@@ -10,6 +10,7 @@ const config = require("./config.json");
 const app = express();
 app.use(express.json());
 app.use(express.static('html'));
+app.use('/favicon.ico', express.static(path.join(__dirname, 'favicon', 'favicon.ico')));
 const server = http.createServer(app);
 
 function isPlaylist(url) {
