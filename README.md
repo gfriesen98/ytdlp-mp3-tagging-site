@@ -2,6 +2,8 @@
 
 Self hostable yt-dlp web frontend with built-in mp3 metadata tagging support
 
+![screenshot](https://github.com/gfriesen98/ytdlp-mp3-tagging-site/blob/main/.images/2024-09-02-01:46.png)
+
 ## How to use
 
 1. Ensure `yt-dlp` and `ffmpeg` are installed on your system and in your `$PATH`
