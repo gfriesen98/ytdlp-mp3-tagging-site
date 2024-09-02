@@ -25,6 +25,6 @@ Self hostable yt-dlp web frontend with built-in mp3 metadata tagging support
 - http://localhost:6969/help.html
 - http://localhost:6969/about.html
 
-Obviously, if `localhost` can be replaced with the running systems ip address
+Obviously, `localhost` can be replaced with the running systems ip address
 
 View help.html for site usage

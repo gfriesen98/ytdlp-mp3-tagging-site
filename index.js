@@ -32,9 +32,10 @@ function isYoutubeUrl(url) {
 
 app.get('/', (req, res) => {
     try {
-        res.sendFile("./html/index.html");
+        return res.sendFile("./html/index.html");
     } catch (error) {
         console.error(error);
+        return res.send(`<html><body><h1>500 Error</h1><p>${error.message}</p</body></html>`);
     }
 });
 

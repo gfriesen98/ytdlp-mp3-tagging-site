@@ -32,6 +32,44 @@ function makeDownloadSessionId(length = 16) {
     return string;
 }
 
+// helper functions for fetch to return json response
+async function fetchGet(url) {
+    try {
+        const res = await fetch(url, { method: "GET" });
+        const resJson = await res.json();
+        return resJson;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function fetchPost(url, body) {
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+
+        const resJson = await res.json();
+        return resJson;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+async function fetchDelete(url) {
+    try {
+        const res = await fetch(url, { method: "DELETE" });
+        const resJson = await res.json();
+        return resJson;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function addQueueItem() {
     const url = document.getElementById("url-input").value;
     if (!isYoutubeUrl(url)) {
@@ -48,8 +86,7 @@ async function addQueueItem() {
     if (url.includes("\/playlist?list=")) {
         isPlaylistUrl = true;
         updateDownloadProgressLabel(`Gathering playlist videos...`);
-        const playlistRes = await fetch("/api/ytdlp/playlist?url=" + url);
-        const playlistJson = await playlistRes.json();
+        const playlistJson = await fetchGet(`/api/ytdlp/playlist?url=${url}`);
         if (playlistJson.success) {
             playlistData = playlistJson.playlist;
             updateDownloadProgressLabel(`${playlistJson.message} (${playlistData.length} videos)`);
@@ -80,11 +117,11 @@ async function addQueueItem() {
         titleField.appendChild(spinnerMsg);
 
         // Create a toggle spoiler
-        const toggleButton = document.createElement("div");
+        const toggleSpoiler = document.createElement("div");
         const details = document.createElement("details");
         details.innerHTML = "<summary>Show Details</summary>";
-        toggleButton.appendChild(details);
-        listItem.appendChild(toggleButton);
+        toggleSpoiler.appendChild(details);
+        listItem.appendChild(toggleSpoiler);
 
         // Create a container for the metadata fields
         const metadataContainer = document.createElement("div");
@@ -149,9 +186,8 @@ async function addQueueItem() {
             spinner.classList.remove('hidden');
             spinnerMsg.classList.remove("hidden");
             updateDownloadProgressLabel(`Gathering title for ${url}...`);
-            const res = await fetch(`/api/ytdlp/title?url=${url}`);
-            const data = await res.json();
-            listItem.querySelector("input[type='text']").value = data.message;
+            const titleData = await fetchGet(`/api/ytdlp/title?url=${url}`);
+            listItem.querySelector("input[type='text']").value = titleData.message;
             spinner.classList.add('hidden');
             spinnerMsg.classList.add("hidden");
         }
@@ -216,16 +252,9 @@ async function startDownload() {
                 videoFormat: "mp4"
             }
         };
-        
+
         updateDownloadProgressLabel(`Downloading ${title}...`);
-        const res = await fetch("/api/ytdlp/download", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(videoData)
-        });
-        const data = await res.json();
+        const data = await fetchPost("/api/ytdlp/download", videoData);
         console.log(data);
         spinner.classList.add("hidden");
 
@@ -237,21 +266,14 @@ async function startDownload() {
     updateDownloadProgressLabel(`Finished downloading ${idx} videos~! Starting zip...`);
 
     console.log("Calling /api/zip with sessionId " + sessionId);
-    const zipRes = await fetch("/api/zip", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({sessionId: sessionId})
-    });
-    const zipResJson = await zipRes.json();
-    console.log(zipResJson);
-    
-    if (zipResJson.success) {
+    const zipData = await fetchPost("/api/zip", {sessionId: sessionId});
+    console.log(zipData);
+
+    if (zipData.success) {
         updateDownloadProgressLabel("Created zip~! Starting download... Please wait for browser download to appear");
     } else {
         updateDownloadProgressLabel(`Error when creating zip. See browser console...`);
-        console.error(zipResJson.message);
+        console.error(zipData.message);
         return null;
     }
 
@@ -271,7 +293,7 @@ async function startDownload() {
     const urlObj = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = urlObj;
-    a.download = zipResJson.filename;
+    a.download = zipData.filename;
     document.body.appendChild(a);
     a.click();
     // clean up blob + clickable url
@@ -279,17 +301,18 @@ async function startDownload() {
     setTimeout(() => {
         a.parentNode.removeChild(a);
     }, 100);
-    
+
     // clean up files on the server after download
     console.log("Calling /api/cleanup with sessionId of " + sessionId);
-    updateDownloadProgressLabel(`Finished downloading ${zipResJson.filename}~! Running cleanup on the server...`);
-    const deleteRes = await fetch(`/api/cleanup?sessionId=${sessionId}`, { method: "DELETE" });
-    const deleteResJson = await deleteRes.json();
-    if (deleteResJson.success) {
-        updateDownloadProgressLabel(`Finished downloading ${zipResJson.filename}~! Successfully cleaned up after myself!`);
+    updateDownloadProgressLabel(`Finished downloading ${zipData.filename}~! Running cleanup on the server...`);
+    // const deleteRes = await fetch(`/api/cleanup?sessionId=${sessionId}`, { method: "DELETE" });
+    // const deleteResJson = await deleteRes.json();
+    const deleteData = await fetchDelete(`/api/cleanup?sessionId=${sessionId}`);
+    if (deleteData.success) {
+        updateDownloadProgressLabel(`Finished downloading ${zipData.filename}~! Successfully cleaned up after myself!`);
         console.log("Successfully cleaned up files on the server");
     } else {
         updateDownloadProgressLabel(`Error when cleaning up files on the server. See console...`);
-        console.error(`Error when cleaning up files: ${deleteResJson.message}`);
+        console.error(`Error when cleaning up files: ${deleteData.message}`);
     }
 }
