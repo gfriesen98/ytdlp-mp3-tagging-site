@@ -2,6 +2,50 @@ const { spawn } = require('child_process');
 const config = require('./config.json');
 const YTDLP_BINARY = config.YTDLP_BINARY;
 
+const functionTypes = {
+    title: "getTitle",
+    audio: "downloadAudio",
+    video: "downloadVideo",
+    playlist: "getPlaylistJson"
+};
+
+const optionsTemplate = {
+    audio: {
+        audioonly: true,
+        format: "bestaudio",
+        audioformat: "mp3"
+    },
+    video: {
+        extension: "mp4",
+    },
+    embedthumbnail: false
+}
+
+function buildOpts(type, url = "", destination = "", filename = "", options = optionsTemplate) {
+    if (typeof type === "undefined") return new Error("'type' is required");
+    if (!Object.values(functionTypes).includes(type)) return new Error("'type' must be one of 'functionTypes'");
+
+    switch (type) {
+        case "getTitle":
+            return ['--ignore-errors', '--print', 'filename', '-o', "%(title)s", url];
+
+        case "downloadAudio":
+            console.log(options);
+            if (!options.embedthumbnail) return ['--ignore-errors', '-P', destination, '--format', options.audio.format, '--extract-audio', '--audio-format', options.audio.audioformat, '--audio-quality', '0', '--output', filename, url];
+            else return ['--ignore-errors', '-P', destination, '--format', options.audio.format, '--extract-audio', '--audio-format', options.audio.audioformat, '--audio-quality', '0', '--embed-thumbnail', '--output', filename, url];
+
+        case "downloadVideo":
+            if (!options.embedthumbnail) return ['--ignore-errors', '-P', destination, '-S', `res,ext:${options.video.extension}:m4a`, '--recode', options.video.extension, '--output', filename, url];
+            else return ['--ignore-errors', '-P', destination, '-S', `res,ext:${options.video.extension}:m4a`, '--recode', options.video.extension, '--embed-thumbnail', '--output', filename, url];
+
+        case "getPlaylistJson":
+            return ['--ignore-errors', '--flat-playlist', '--print', "{\"url\": \"%(url)s\", \"title\": \"%(title)s\"}", `${url}`];
+
+        default:
+            return new Error("'type' not found");
+    }
+}
+
 /**
  * Gets the current version
  * @returns {Promise<String>} Resoves with the output of --version
@@ -40,15 +84,8 @@ function getVersion() {
  * @returns {Promise}
  */
 function getTitle(url) {
-    const args = [
-        '--ignore-errors',
-        "--print", "filename",
-        "-o", "%(title)s",
-        url
-    ];
-
     return new Promise((resolve, reject) => {
-        const ytdlp = spawn(YTDLP_BINARY, args);
+        const ytdlp = spawn(YTDLP_BINARY, buildOpts(functionTypes.title, url));
         let returnValue = "";
 
         ytdlp.stdout.on('data', data => {
@@ -76,39 +113,17 @@ function getTitle(url) {
 }
 
 /**
- * Use yt=dlp to downnload audio from a youtube url
+ * Use yt=dlp to download audio from a youtube url
  * @param {String} url youtube url
- * @param {String} destination download destination
+ * @param {String} destination download directory
  * @param {String} filename desired filename
- * @param {Object} options array of yt-dlp options
+ * @param {Object} options optionsTemplate
  * @returns {Promise}
  */
-function downloadAudio(url, destination, filename, options = { format: "bestaudio", audioformat: "mp3", embedthumbnail: false }) {
-    const args = [
-        "--ignore-errors",
-        "-P", destination,
-        "--format", options.format,
-        "--extract-audio",
-        "--audio-format", options.audioformat,
-        "--audio-quality", "0",
-        "--output", filename,
-        url
-    ];
-
-    const thumbnailArgs = [
-        "--ignore-errors",
-        "-P", destination,
-        "--format", options.format,
-        "--extract-audio",
-        "--audio-format", options.audioformat,
-        "--audio-quality", "0",
-        "--embed-thumbnail",
-        "--output", filename,
-        url
-    ]
-
+function downloadAudio(url, destination, filename, options = optionsTemplate) {
     return new Promise((resolve, reject) => {
-        const ytdlp = spawn(YTDLP_BINARY, !options.embedthumbnail ? args : thumbnailArgs);
+        const opts = buildOpts(functionTypes.audio, url, destination, filename, options);
+        const ytdlp = spawn(YTDLP_BINARY, opts);
 
         ytdlp.stdout.on('data', data => {
             let output = data.toString().trim();
@@ -137,37 +152,17 @@ function downloadAudio(url, destination, filename, options = { format: "bestaudi
 }
 
 /**
- * Use yt=dlp to download video from a youtube url
+ * Use yt=dlp to download a video from a youtube url
  * @param {String} url youtube url
- * @param {String} destination download destination
+ * @param {String} destination download directory
  * @param {String} filename desired filename
- * @param {Object} options array of yt-dlp options
+ * @param {Object} options optionsTemplate
  * @returns {Promise}
  */
-function downloadVideo(url, destination, filename, options = { extension: "mp4", embedthumbnail: false }) {
-    const args = [
-        "--ignore-errors",
-
-        // set download dest
-        "-P", destination,
-        "-S", `res,ext:${options.extension}:m4a`,
-        "--recode", options.extension,
-        "--output", filename,
-        url
-    ];
-
-    const thumbnailArgs = [
-        "--ignore-errors",
-        "-P", destination,
-        "-S", `res,ext:${options.extension}:m4a`,
-        "--recode", options.extension,
-        "--embed-thumbnail",
-        "--output", filename,
-        url
-    ];
-
+function downloadVideo(url, destination, filename, options = optionsTemplate) {
     return new Promise((resolve, reject) => {
-        const ytdlp = spawn(YTDLP_BINARY, !options.embedthumbnail ? args : thumbnailArgs);
+        const opts = buildOpts(functionTypes.video, url, destination, filename, options);
+        const ytdlp = spawn(YTDLP_BINARY, opts);
 
         ytdlp.stdout.on('data', data => {
             let output = data.toString().trim();
@@ -195,18 +190,15 @@ function downloadVideo(url, destination, filename, options = { extension: "mp4",
     });
 }
 
+/**
+ * Use yt-dlp to get json output for a playlist
+ * @param {String} url youtube url
+ * @returns {Promise}
+ */
 function getPlaylistJson(url) {
-    const args = [
-        "--ignore-errors",
-        "--flat-playlist",
-        "--print", "{\"url\": \"%(url)s\", \"title\": \"%(title)s\"}",
-        `${url}`
-    ];
-
-    console.log(`getting playlist data for ${url}`);
-
     return new Promise((resolve, reject) => {
-        const ytdlp = spawn(YTDLP_BINARY, args);
+        const opts = buildOpts(functionTypes.playlist, url);
+        const ytdlp = spawn(YTDLP_BINARY, opts);
         let dataArray = [];
 
         ytdlp.stdout.on('data', data => {
@@ -222,7 +214,6 @@ function getPlaylistJson(url) {
 
         ytdlp.stderr.on('data', data => {
             console.log(data.toString().trim());
-            // reject(data.toString().trim());
         });
 
         ytdlp.on('exit', code => {

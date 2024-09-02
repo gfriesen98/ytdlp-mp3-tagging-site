@@ -94,15 +94,16 @@ app.post('/api/ytdlp/download', async (req, res) => {
         const url = req.body.url;
         const sessionId = req.body.sessionId;
         const metadata = req.body.mp3Metadata;
-        const downloadOptions = req.body.downloadOptions;
+        const ignoreCustomMetadata = req.body.ignoreCustomMetadata;
+        const ytdlpOptions = req.body.ytdlpOptions;
 
         console.log("Downloading url: " + url);
         console.log("SessionId: " + sessionId);
         console.log("Metadata:", metadata);
-        console.log("Download options:", downloadOptions);
+        console.log("Download options:", ytdlpOptions);
 
         const downloadDestination = path.resolve(`./downloads/${sessionId}`);
-        const fullFilePath = `${downloadDestination}/${metadata.title}.${downloadOptions.audioOnly ? downloadOptions.audioFormat : downloadOptions.videoFormat}`;
+        const fullFilePath = `${downloadDestination}/${metadata.title}.${ytdlpOptions.audio.audioonly ? ytdlpOptions.audio.audioformat : ytdlpOptions.video.extension}`;
 
         // ensure download path exists
         try {
@@ -112,18 +113,19 @@ app.post('/api/ytdlp/download', async (req, res) => {
             return res.json({ success: false, message: `Failed to create download directory: ${error.message}` });
         }
 
-        if (downloadOptions.audioOnly) {
+        if (ytdlpOptions.audio.audioonly) {
             console.log("Downloading audio only...");
-            const resp = await Ytdlp.downloadAudio(url, downloadDestination, metadata.title, { format: "bestaudio", audioformat: "mp3", embedthumbnail: downloadOptions.embedYoutubeThumb });
+            const resp = await Ytdlp.downloadAudio(url, downloadDestination, metadata.title, ytdlpOptions);
             console.log(`Success: ${resp}`);
+
         } else {
             console.log("Downloading video...");
-            const resp = await Ytdlp.downloadVideo(url, downloadDestination, metadata.title, { extension: "mp4", embedthumbnail: downloadOptions.embedYoutubeThumb });
+            const resp = await Ytdlp.downloadVideo(url, downloadDestination, metadata.title, ytdlpOptions);
             console.log(`Success: ${resp}`);
         }
 
         // custom metadata
-        if (!downloadOptions.ignoreCustomMetadata && downloadOptions.audioOnly) {
+        if (!ignoreCustomMetadata && ytdlpOptions.audio.audioonly) {
             console.log("Editing metadata...");
             console.log(`Reading ${fullFilePath}`);
             const buffer = await fs.promises.readFile(fullFilePath);

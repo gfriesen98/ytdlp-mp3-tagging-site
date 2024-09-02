@@ -233,6 +233,7 @@ async function startDownload() {
         const videoData = {
             url: url,
             sessionId: sessionId,
+            ignoreCustomMetadata: ignoreCustomMetadata,
             mp3Metadata: {
                 title: title,
                 artist: artist,
@@ -244,12 +245,16 @@ async function startDownload() {
                 composer: composer,
                 lyrics: lyrics
             },
-            downloadOptions: {
-                audioOnly: audioOnly,
-                embedYoutubeThumb: embedYoutubeThumb,
-                ignoreCustomMetadata: ignoreCustomMetadata,
-                audioFormat: "mp3",
-                videoFormat: "mp4"
+            ytdlpOptions: {
+                audio: {
+                    audioonly: audioOnly,
+                    format: "bestaudio",
+                    audioformat: "mp3"
+                },
+                video: {
+                    extension: "mp4"
+                },
+                embedthumbnail: embedYoutubeThumb,
             }
         };
 
