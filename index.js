@@ -5,6 +5,7 @@ const MP3Tag = require("mp3tag.js");
 const path = require("path");
 const fs = require('fs');
 const Ytdlp = require("./ytdlp.js");
+const ffmpeg = require('./ffmpeg.js');
 const config = require("./config.json");
 
 const app = express();
@@ -151,6 +152,26 @@ app.post('/api/ytdlp/download', async (req, res) => {
         let filename = fullFilePath.split('/');
         filename = filename[filename.length - 1];
         return res.json({ success: true, message: "Finished downloading :3", filename });
+
+    } catch (error) {
+        console.error(error);
+        return res.json({ success: false, message: error.message });
+    }
+});
+
+app.post("/api/ffmpeg/clip", async (req, res) => {
+    try {
+        const body = req.body;
+        const sessionId = body.sessionId;
+        const downloadDestination = path.resolve(`./downloads/${sessionId}`);
+
+        const filename = `${downloadDestination}/${body.filename}`;
+        const timestamps = body.timestamps;
+        const title = body.title;
+        const newPath = `${downloadDestination}/${title}.mp3`
+        const f = await ffmpeg.createClip(filename, newPath, timestamps);
+        if (f && f > 0) return res.json({success: false, message: "failed to start ffmpeg"});
+        else return res.json({success: false, message: "split file"});
 
     } catch (error) {
         console.error(error);

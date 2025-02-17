@@ -34,3 +34,7 @@ async function createClip(inputFile, outputFile, timestamps) {
         })
     });
 }
+
+module.exports = {
+    createClip
+};

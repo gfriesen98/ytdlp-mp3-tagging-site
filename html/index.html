@@ -200,7 +200,20 @@
         const res = await fetchPost('/api/ytdlp/download', ytdlpBody);
         console.log(res);
         // then split video, iterate over table data, make request for each
-        const res2 = await fetchPost("/api/ffmpeg/split", {filename: res.filename, timestampData});
+        const rows = document.querySelectorAll("tbody tr").length;
+        for (let i = 0; i < rows; i++) {
+          let start = document.getElementById(`start-${i}`).value;
+          let end = document.getElementById(`end-${i}`).value;
+          let title = document.getElementById(`title-${i}`).value;
+          let r = await fetchPost('/api/ffmpeg/clip', {
+            sessionId: sessionId,
+            timestamps: {start: start, end: end},
+            title: title,
+            filename: res.filename
+          });
+          console.log(r);
+        }
+        // const res2 = await fetchPost("/api/ffmpeg/split", {filename: res.filename, timestampData});
       });
 
       document.getElementById("sId").innerHTML = `sessionId (for debugging): <code>${sessionId}</code>`;
