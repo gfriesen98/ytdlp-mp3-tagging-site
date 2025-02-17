@@ -230,6 +230,35 @@ app.get("/api/download", async (req, res) => {
     }
 });
 
+app.delete("/api/ffmpeg/clip/cleanup", async (req, res) => {
+    try {
+        if (typeof req.query.sessionId === "undefined") return res.json({ success: false, message: "'sessionId' was not provided" });
+        if (typeof req.query.mediatype === "undefined") return res.json({ success: false, message: "'mediatype' was not provided"});
+        const sessionId = req.query.sessionId;
+        const mediatype = req.query.mediatype;
+
+        const filePath = path.resolve(`./downloads/${sessionId}/${sessionId}_split.${mediatype}`);
+        try {
+            await fs.promises.access(filePath);
+        } catch (error) {
+            console.error(error);
+            return res.json({success: false, message: "Failed to remove temporary files. File not found"});
+        }
+
+        try {
+            await fs.promises.rm(filePath);
+        } catch (error) {
+            console.error(error);
+            return res.json({ success: false, message: "Failed to temove temporary files. Error calling fs.promises.rm"});
+        }
+
+        return res.json({ success: true, message: "Successfully deleted temp file"});
+    } catch (error) {
+        console.error(error);
+        return res.json({ success: false, message: "Error calling /api/ffmpeg/split/cleanup"});
+    }
+});
+
 app.delete("/api/cleanup", async (req, res) => {
     try {
         if (typeof req.query.sessionId === "undefined") return res.json({ success: false, message: "'sessionId' was not provided" });

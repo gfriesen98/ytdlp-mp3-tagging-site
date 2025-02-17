@@ -121,7 +121,7 @@
             <th>End</th>
           </tr>
         </thead>
-        <tbody id="timestamps">
+        <tbody id="timestampBody">
           <!-- <tr>
             <td>ads</td>
             <td>ads</td>
@@ -144,78 +144,6 @@
   <script src="./js/util.js"></script>
   <script>
     window.onload = async () => {
-      const modal = document.getElementById("modal");
-      const modalButton = document.getElementById("modalButton");
-      const modalSpan = document.getElementsByClassName("close")[0];
-      const timestampTable = document.getElementById("timestamps");
-      const timestampAddButton = document.getElementById("timestampAdd");
-      modalButton.onclick = () => {
-        modal.style.display = "block";
-      }
-
-      modalSpan.addEventListener("click", () => {
-
-        modal.style.display - "hidden";
-      });
-
-      window.onclick = (event) => {
-        if (event.target == modal) modal.style.display = "none";
-      }
-
-      timestampAddButton.onclick = () => {
-        const rows = document.querySelectorAll("tbody tr");
-        
-        timestampTable.innerHTML += `
-        <tr>
-          <td>
-            <input id="title-${rows.length}" />
-          </td>
-          <td>
-            <input id="start-${rows.length}" style="width: 110px; text-align: center" placeholder="HH:MM:SS" maxlength="8"/>
-          </td>
-          <td>
-            <input id="end-${rows.length}" style="width: 110px; text-align: center" placeholder="HH:MM:SS" maxlength="8"/>
-          </td>
-        </tr>
-        `;
-      }
-
-      document.getElementById("modalDownload").addEventListener("click", async () => {
-        const album = document.getElementById("modalAlbum").value;
-        const artist = document.getElementById("modalArtist").value;
-        const year = document.getElementById("modalYear").value;
-        const audioOnly = document.getElementById("modal-audioonly-checkbox").checked;
-        const url = document.getElementById("url-input").value;
-        const ytdlpBody = {
-          url: url,
-          sessionId: sessionId,
-          ignoreCustomMetadata: true,
-          ytdlpOptions: {
-            audio: { audioonly: audioOnly, format: "bestaudio", audioformat: "mp3" }
-          },
-          mp3Metadata: {title: album}
-        }
-
-        // first download video
-        const res = await fetchPost('/api/ytdlp/download', ytdlpBody);
-        console.log(res);
-        // then split video, iterate over table data, make request for each
-        const rows = document.querySelectorAll("tbody tr").length;
-        for (let i = 0; i < rows; i++) {
-          let start = document.getElementById(`start-${i}`).value;
-          let end = document.getElementById(`end-${i}`).value;
-          let title = document.getElementById(`title-${i}`).value;
-          let r = await fetchPost('/api/ffmpeg/clip', {
-            sessionId: sessionId,
-            timestamps: {start: start, end: end},
-            title: title,
-            filename: res.filename
-          });
-          console.log(r);
-        }
-        // const res2 = await fetchPost("/api/ffmpeg/split", {filename: res.filename, timestampData});
-      });
-
       document.getElementById("sId").innerHTML = `sessionId (for debugging): <code>${sessionId}</code>`;
       let currVersion = "";
       let githubVersion = "";

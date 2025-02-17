@@ -1,10 +1,11 @@
 const queue = document.getElementById("queue-list");
+const modal = document.getElementById("modal");
+const modalButton = document.getElementById("modalButton");
+const modalSpan = document.getElementsByClassName("close")[0];
+const timestampTable = document.getElementById("timestamps");
+const timestampBody = document.getElementById("timestampBody");
+const timestampAddButton = document.getElementById("timestampAdd");
 const sessionId = makeDownloadSessionId();
-
-document.addEventListener('DOMContentLoaded', () => {
-    if (queue.children.length > 0) document.getElementById("dl-button").disabled = false;
-    else document.getElementById("dl-button").disabled = true;
-});
 
 function isYoutubeUrl(url) {
     if (url.match(/https:\/\/www\.youtube|https:\/\/youtu\.be|https:\/\/youtube\.com/ig)) return true;
@@ -31,6 +32,45 @@ function makeDownloadSessionId(length = 16) {
     }
     return string;
 }
+
+function formatTime(input) {
+    let value = input.value;
+
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+
+    // Enforce maximum length
+    if (value.length > 6) {
+      value = value.slice(0, 6);
+    }
+
+    // Add colons
+    if (value.length > 2) {
+      value = value.slice(0, 2) + ':' + value.slice(2);
+    }
+    if (value.length > 5) {
+      value = value.slice(0, 5) + ':' + value.slice(5);
+    }
+
+    // Update the input field
+    input.value = value;
+
+    // Validation (optional, but recommended)
+    if (value.length === 8) {
+      const parts = value.split(':');
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      const seconds = parseInt(parts[2], 10);
+
+      if (hours > 23 || minutes > 59 || seconds > 59) {
+        input.setCustomValidity("Invalid time format (HH:MM:SS)");
+      } else {
+        input.setCustomValidity(""); // Clear the error
+      }
+    } else {
+      input.setCustomValidity(""); // Clear the error if not complete
+    }
+  }
 
 // helper functions for fetch to return json response
 async function fetchGet(url) {
@@ -271,7 +311,7 @@ async function startDownload() {
     updateDownloadProgressLabel(`Finished downloading ${idx} videos~! Starting zip...`);
 
     console.log("Calling /api/zip with sessionId " + sessionId);
-    const zipData = await fetchPost("/api/zip", {sessionId: sessionId});
+    const zipData = await fetchPost("/api/zip", { sessionId: sessionId });
     console.log(zipData);
 
     if (zipData.success) {
@@ -320,4 +360,141 @@ async function startDownload() {
         updateDownloadProgressLabel(`Error when cleaning up files on the server. See console...`);
         console.error(`Error when cleaning up files: ${deleteData.message}`);
     }
+}
+
+document.getElementById("modalDownload").addEventListener("click", async () => {
+    const album = document.getElementById("modalAlbum").value;
+    const artist = document.getElementById("modalArtist").value;
+    const year = document.getElementById("modalYear").value;
+    const audioOnly = document.getElementById("modal-audioonly-checkbox").checked;
+    const url = document.getElementById("url-input").value;
+    const ytdlpBody = {
+        url: url,
+        sessionId: sessionId,
+        ignoreCustomMetadata: true,
+        ytdlpOptions: {
+            audio: { audioonly: audioOnly, format: "bestaudio", audioformat: audioOnly ? "mp3" : "mp4" }
+        },
+        mp3Metadata: { title: `${sessionId}_split` }
+    }; // TODO figure out better/secure way of removing the single file
+       // since the way clip is called per table row, we have to track the
+       // original file somehow... not sure
+       // Maybe temp file should be stored in system /tmp so its outside of ./downloads
+       // and can be cleaned up with cron or something
+
+    // first download video
+    const res = await fetchPost('/api/ytdlp/download', ytdlpBody);
+
+    // then split video, iterate over table data, make request for each
+    const rows = document.querySelectorAll("tbody tr").length;
+    console.log(rows);
+    
+    for (let i = 0; i < rows; i++) {
+        let start = document.getElementById(`start-${i}`).value;
+        let end = document.getElementById(`end-${i}`).value;
+        let title = document.getElementById(`title-${i}`).value;
+        let clipRes = await fetchPost('/api/ffmpeg/clip', {
+            sessionId: sessionId,
+            timestamps: { start: start, end: end },
+            title: title,
+            filename: res.filename,
+            mp3Metadata: {
+                title: title,
+                artist: artist,
+                album: album,
+                year: year
+            }
+        });
+        console.log(clipRes);
+    }
+
+    // call cleanup to remove temp file
+    const cleanupRes = await fetchDelete(`/api/ffmpeg/clip/cleanup?sessionId=${sessionId}&mediatype=${ytdlpBody.ytdlpOptions.audio.audioformat}`);
+    console.log(cleanupRes);
+
+    // call zip
+    const zipRes = await fetchPost("/api/zip", { sessionId });
+    console.log(zipRes);
+
+    // call download
+    const downloadRes = await fetch(`/api/download?sessionId=${sessionId}`);
+    const reader = downloadRes.body.getReader();
+    const chunks = [];
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+    }
+
+    // create blob + clickable url
+    const blob = new Blob(chunks);
+    const urlObj = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = urlObj;
+    a.download = zipRes.filename;
+    document.body.appendChild(a);
+    a.click();
+    // clean up blob + clickable url
+    window.URL.revokeObjectURL(urlObj);
+    setTimeout(() => {
+        a.parentNode.removeChild(a);
+    }, 100);
+
+    // call cleanup
+    const deleteData = await fetchDelete(`/api/cleanup?sessionId=${sessionId}`);
+    console.log(deleteData);
+});
+
+modalButton.onclick = () => {
+    modal.style.display = "block";
+}
+
+modalSpan.addEventListener("click", () => {
+    modal.style.display - "hidden";
+});
+
+window.onclick = (event) => {
+    if (event.target == modal) modal.style.display = "none";
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (queue.children.length > 0) document.getElementById("dl-button").disabled = false;
+    else document.getElementById("dl-button").disabled = true;
+});
+
+timestampAddButton.onclick = () => {
+    const rows = document.querySelectorAll("tbody tr");
+
+    const tr = document.createElement("tr");
+    const titleTd = document.createElement('td');
+    const titleInput = document.createElement("input");
+    titleInput.id = `title-${rows.length}`;
+    titleTd.appendChild(titleInput);
+    tr.appendChild(titleTd)
+
+    const startTd = document.createElement('td');
+    const startInput = document.createElement('input');
+    startInput.id = `start-${rows.length}`;
+    startInput.oninput = function () {
+        formatTime(this);
+    }
+    startInput.style = "width: 110px; text-align: center";
+    startInput.placeholder = "HH:MM:SS";
+    startInput.maxLength = 8;
+    startTd.appendChild(startInput);
+    tr.appendChild(startTd);
+
+    const endTd = document.createElement('td');
+    const endInput = document.createElement('input');
+    endInput.id = `end-${rows.length}`;
+    endInput.oninput = function () {
+        formatTime(this);
+    }
+    endInput.style = "width: 110px; text-align: center";
+    endInput.placeholder = "HH:MM:SS";
+    endInput.maxLength = 8;
+    endTd.appendChild(endInput);
+    tr.appendChild(endTd);
+
+    timestampBody.appendChild(tr);
 }
