@@ -111,7 +111,7 @@
       <input id="modalArtist" placeholder="artist"/>
       <input id="modalAlbum" placeholder="album"/>
       <input id="modalYear" placeholder="year"/>
-      <b>Audio only?</b> <input type="checkbox" checked class="modal-audioonly-checkbox"/>
+      <b>Audio only?</b> <input type="checkbox" checked id="modal-audioonly-checkbox"/>
       <p>Add timestamps</p>
       <table id="timestamps">
         <thead>
@@ -129,6 +129,7 @@
         </tbody>
       </table>
       <button id="timestampAdd">Add timestamp</button>
+      <button id="modalDownload">Submit</button>
     </div>
   </div>
 
@@ -178,6 +179,29 @@
         </tr>
         `;
       }
+
+      document.getElementById("modalDownload").addEventListener("click", async () => {
+        const album = document.getElementById("modalAlbum").value;
+        const artist = document.getElementById("modalArtist").value;
+        const year = document.getElementById("modalYear").value;
+        const audioOnly = document.getElementById("modal-audioonly-checkbox").checked;
+        const url = document.getElementById("url-input").value;
+        const ytdlpBody = {
+          url: url,
+          sessionId: sessionId,
+          ignoreCustomMetadata: true,
+          ytdlpOptions: {
+            audio: { audioonly: audioOnly, format: "bestaudio", audioformat: "mp3" }
+          },
+          mp3Metadata: {title: album}
+        }
+
+        // first download video
+        const res = await fetchPost('/api/ytdlp/download', ytdlpBody);
+        console.log(res);
+        // then split video, iterate over table data, make request for each
+        const res2 = await fetchPost("/api/ffmpeg/split", {filename: res.filename, timestampData});
+      });
 
       document.getElementById("sId").innerHTML = `sessionId (for debugging): <code>${sessionId}</code>`;
       let currVersion = "";

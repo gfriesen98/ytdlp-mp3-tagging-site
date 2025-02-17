@@ -148,7 +148,9 @@ app.post('/api/ytdlp/download', async (req, res) => {
             await fs.promises.writeFile(fullFilePath, mp3tag.buffer);
         }
 
-        return res.json({ success: true, message: "Finished downloading :3" });
+        let filename = fullFilePath.split('/');
+        filename = filename[filename.length - 1];
+        return res.json({ success: true, message: "Finished downloading :3", filename });
 
     } catch (error) {
         console.error(error);
