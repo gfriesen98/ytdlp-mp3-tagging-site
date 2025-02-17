@@ -34,6 +34,55 @@
     .hidden {
       display: none;
     }
+
+    /* The Modal (background) */
+    .modal {
+      display: none;
+      /* Hidden by default */
+      position: fixed;
+      /* Stay in place */
+      z-index: 1;
+      /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%;
+      /* Full width */
+      height: 100%;
+      /* Full height */
+      overflow: auto;
+      /* Enable scroll if needed */
+      background-color: "#535353";
+      /* Fallback color */
+      /* background-color: rgba(0, 0, 0, 0.4); */
+      /* Black w/ opacity */
+    }
+
+    /* Modal Content/Box */
+    .modal-content {
+      /* background-color: #fefefe; */
+      background-color: #2b2b2b;
+      margin: 15% auto;
+      /* 15% from the top and centered */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      /* Could be more or less, depending on screen size */
+    }
+
+    /* The Close Button */
+    .close {
+      /* color: #aaa; */
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      /* color: black; */
+      text-decoration: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 
@@ -51,7 +100,37 @@
 
   <button onclick="addQueueItem()" style="margin-top: 1%">Add to queue</button>
 
+  <button id="modalButton">Split video</button>
   <button onclick="startDownload()" id="dl-button" style="margin-top: 2%" disabled>Download</button>
+
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Split video</h3>
+      <p>Metadata</p>
+      <input id="modalArtist" placeholder="artist"/>
+      <input id="modalAlbum" placeholder="album"/>
+      <input id="modalYear" placeholder="year"/>
+      <b>Audio only?</b> <input type="checkbox" checked class="modal-audioonly-checkbox"/>
+      <p>Add timestamps</p>
+      <table id="timestamps">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Start</th>
+            <th>End</th>
+          </tr>
+        </thead>
+        <tbody id="timestamps">
+          <!-- <tr>
+            <td>ads</td>
+            <td>ads</td>
+          </tr> -->
+        </tbody>
+      </table>
+      <button id="timestampAdd">Add timestamp</button>
+    </div>
+  </div>
 
   <label for="dl-progress" id="dl-progress-label" style="margin: 2rem 0 0 0">Download not started</label>
   <progress id="dl-progress">progress</progress>
@@ -64,6 +143,42 @@
   <script src="./js/util.js"></script>
   <script>
     window.onload = async () => {
+      const modal = document.getElementById("modal");
+      const modalButton = document.getElementById("modalButton");
+      const modalSpan = document.getElementsByClassName("close")[0];
+      const timestampTable = document.getElementById("timestamps");
+      const timestampAddButton = document.getElementById("timestampAdd");
+      modalButton.onclick = () => {
+        modal.style.display = "block";
+      }
+
+      modalSpan.addEventListener("click", () => {
+
+        modal.style.display - "hidden";
+      });
+
+      window.onclick = (event) => {
+        if (event.target == modal) modal.style.display = "none";
+      }
+
+      timestampAddButton.onclick = () => {
+        const rows = document.querySelectorAll("tbody tr");
+        
+        timestampTable.innerHTML += `
+        <tr>
+          <td>
+            <input id="title-${rows.length}" />
+          </td>
+          <td>
+            <input id="start-${rows.length}" style="width: 110px; text-align: center" placeholder="HH:MM:SS" maxlength="8"/>
+          </td>
+          <td>
+            <input id="end-${rows.length}" style="width: 110px; text-align: center" placeholder="HH:MM:SS" maxlength="8"/>
+          </td>
+        </tr>
+        `;
+      }
+
       document.getElementById("sId").innerHTML = `sessionId (for debugging): <code>${sessionId}</code>`;
       let currVersion = "";
       let githubVersion = "";
