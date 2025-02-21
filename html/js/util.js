@@ -1,27 +1,45 @@
 const queue = document.getElementById("queue-list");
 const modal = document.getElementById("modal");
 const modalButton = document.getElementById("modalButton");
-const modalSpan = document.getElementsByClassName("close")[0];
+const modalSpan = document.getElementById("close");
 const timestampTable = document.getElementById("timestamps");
 const timestampBody = document.getElementById("timestampBody");
 const timestampAddButton = document.getElementById("timestampAdd");
 const sessionId = makeDownloadSessionId();
 
+/**
+ * Checks the url for a valid youtube url
+ * @param {string} url 
+ * @returns {boolean}
+ */
 function isYoutubeUrl(url) {
     if (url.match(/https:\/\/www\.youtube|https:\/\/youtu\.be|https:\/\/youtube\.com/ig)) return true;
     else return false;
 }
 
+/**
+ * Helper function: update progress label string
+ * @param {string} message 
+ */
 function updateDownloadProgressLabel(message) {
     const label = document.getElementById("dl-progress-label");
     label.innerHTML = message;
 }
 
+/**
+ * Helper function: update progress label string
+ * @param {number} idx 
+ */
 function updateDownloadProgressBar(idx) {
     const progress = document.getElementById("dl-progress");
     progress.value = idx;
 }
 
+/**
+ * Create a random alphanumeric string in place of a real session token or whatever
+ * @param {number} length 
+ * @returns {string}
+ */
 function makeDownloadSessionId(length = 16) {
     const alphanum = '0123456789abcdefghijklmnopqrstuvwxyz';
     let string = "";
@@ -33,6 +51,10 @@ function makeDownloadSessionId(length = 16) {
     return string;
 }
 
+/**
+ * Helper function: format an input to be HH:MM:SS format
+ * @param input 
+ */
 function formatTime(input) {
     let value = input.value;
 
@@ -72,7 +94,11 @@ function formatTime(input) {
     }
   }
 
-// helper functions for fetch to return json response
+/**
+ * Helper function: shorthand fetch.get for JSON response
+ * @param {string} url 
+ * @returns {object|Error}
+ */
 async function fetchGet(url) {
     try {
         const res = await fetch(url, { method: "GET" });
@@ -83,6 +109,12 @@ async function fetchGet(url) {
     }
 }
 
+/**
+ * Helper function: shorthand fetch.post for JSON response
+ * @param {string} url 
+ * @param {object} body 
+ * @returns {object|Error}
+ */
 async function fetchPost(url, body) {
     try {
         const res = await fetch(url, {
@@ -100,6 +132,11 @@ async function fetchPost(url, body) {
     }
 }
 
+/**
+ * Helper function: shorthand fetch.delete for JSON response
+ * @param {string} url 
+ * @returns {object|Error}
+ */
 async function fetchDelete(url) {
     try {
         const res = await fetch(url, { method: "DELETE" });
@@ -110,6 +147,10 @@ async function fetchDelete(url) {
     }
 }
 
+/**
+ * Cancer function: create new a new Queue item html
+ * @returns 
+ */
 async function addQueueItem() {
     const url = document.getElementById("url-input").value;
     if (!isYoutubeUrl(url)) {
@@ -240,6 +281,10 @@ async function addQueueItem() {
     }, isPlaylistUrl ? 1000 : 500);
 }
 
+/**
+ * Starts downloading queue items one by one
+ * @returns 
+ */
 async function startDownload() {
     const queueItems = document.querySelectorAll("#queue-list li");
     if (queueItems.length < 1) {
@@ -270,6 +315,7 @@ async function startDownload() {
         const embedYoutubeThumb = item.querySelector(".embed-thumbnail-checkbox").checked;
         const ignoreCustomMetadata = item.querySelector(".ignore-custom-metadata-checkbox").checked;
 
+        // puke everything into an object
         const videoData = {
             url: url,
             sessionId: sessionId,
@@ -300,7 +346,6 @@ async function startDownload() {
 
         updateDownloadProgressLabel(`Downloading ${title}...`);
         const data = await fetchPost("/api/ytdlp/download", videoData);
-        console.log(data);
         spinner.classList.add("hidden");
 
         idx++;
@@ -310,10 +355,7 @@ async function startDownload() {
     updateDownloadProgressBar(idx);
     updateDownloadProgressLabel(`Finished downloading ${idx} videos~! Starting zip...`);
 
-    console.log("Calling /api/zip with sessionId " + sessionId);
     const zipData = await fetchPost("/api/zip", { sessionId: sessionId });
-    console.log(zipData);
-
     if (zipData.success) {
         updateDownloadProgressLabel("Created zip~! Starting download... Please wait for browser download to appear");
     } else {
@@ -323,7 +365,6 @@ async function startDownload() {
     }
 
     // get chunks to download
-    console.log("Calling /api/download with sessionId " + sessionId);
     const downloadRes = await fetch(`/api/download?sessionId=${sessionId}`);
     const reader = downloadRes.body.getReader();
     const chunks = [];
@@ -348,10 +389,7 @@ async function startDownload() {
     }, 100);
 
     // clean up files on the server after download
-    console.log("Calling /api/cleanup with sessionId of " + sessionId);
     updateDownloadProgressLabel(`Finished downloading ${zipData.filename}~! Running cleanup on the server...`);
-    // const deleteRes = await fetch(`/api/cleanup?sessionId=${sessionId}`, { method: "DELETE" });
-    // const deleteResJson = await deleteRes.json();
     const deleteData = await fetchDelete(`/api/cleanup?sessionId=${sessionId}`);
     if (deleteData.success) {
         updateDownloadProgressLabel(`Finished downloading ${zipData.filename}~! Successfully cleaned up after myself!`);
@@ -362,6 +400,11 @@ async function startDownload() {
     }
 }
 
+/**
+ * Starts video download and subsequent clipping api call
+ * for each item in the timestamps table once intial video
+ * is downloaded
+ */
 document.getElementById("modalDownload").addEventListener("click", async () => {
     const album = document.getElementById("modalAlbum").value;
     const artist = document.getElementById("modalArtist").value;
@@ -382,17 +425,21 @@ document.getElementById("modalDownload").addEventListener("click", async () => {
        // Maybe temp file should be stored in system /tmp so its outside of ./downloads
        // and can be cleaned up with cron or something
 
+    modal.style.display = "none";
+
     // first download video
+    updateDownloadProgressLabel("Downloading intial video...");
     const res = await fetchPost('/api/ytdlp/download', ytdlpBody);
 
     // then split video, iterate over table data, make request for each
     const rows = document.querySelectorAll("tbody tr").length;
-    console.log(rows);
     
     for (let i = 0; i < rows; i++) {
         let start = document.getElementById(`start-${i}`).value;
         let end = document.getElementById(`end-${i}`).value;
         let title = document.getElementById(`title-${i}`).value;
+        updateDownloadProgressLabel("Creating clip #"+i+1);
+        updateDownloadProgressBar(i+1);
         let clipRes = await fetchPost('/api/ffmpeg/clip', {
             sessionId: sessionId,
             timestamps: { start: start, end: end },
@@ -409,6 +456,10 @@ document.getElementById("modalDownload").addEventListener("click", async () => {
     }
 
     // call cleanup to remove temp file
+    // need to pass both sessionid and whatever the media type is
+    // in order to delete the correct file unless i want to allow the 
+    // ability to send the actual file name and pass that around
+    updateDownloadProgressLabel("Cleaning up...");
     const cleanupRes = await fetchDelete(`/api/ffmpeg/clip/cleanup?sessionId=${sessionId}&mediatype=${ytdlpBody.ytdlpOptions.audio.audioformat}`);
     console.log(cleanupRes);
 
@@ -417,6 +468,7 @@ document.getElementById("modalDownload").addEventListener("click", async () => {
     console.log(zipRes);
 
     // call download
+    updateDownloadProgressLabel("Serving your file");
     const downloadRes = await fetch(`/api/download?sessionId=${sessionId}`);
     const reader = downloadRes.body.getReader();
     const chunks = [];
@@ -450,7 +502,7 @@ modalButton.onclick = () => {
 }
 
 modalSpan.addEventListener("click", () => {
-    modal.style.display - "hidden";
+    modal.style.display = "none";
 });
 
 window.onclick = (event) => {

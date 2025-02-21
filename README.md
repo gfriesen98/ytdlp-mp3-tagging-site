@@ -8,7 +8,7 @@ Self hostable yt-dlp web frontend with built-in mp3 metadata tagging support
 
 1. Ensure `yt-dlp` and `ffmpeg` are installed on your system and in your `$PATH`
     - Alternatively, edit `config.json` with the paths to your yt-dlp and ffmpeg binaries
-    - If you do this, `ffmpeg` and `ffprobe` binaries need to reside in the same directory as `yt-dlp`
+    - * If you do this, `ffmpeg` and `ffprobe` binaries need to reside in the same directory as `yt-dlp` in order for yt-dlp to work properly
 
 2. Clone this repository
 

@@ -14,16 +14,31 @@ app.use(express.static('html'));
 app.use('/favicon.ico', express.static(path.join(__dirname, 'favicon', 'favicon.ico')));
 const server = http.createServer(app);
 
+/**
+ * Check if a url is a youtube playlist
+ * @param {string} url 
+ * @returns {boolean}
+ */
 function isPlaylist(url) {
     if (url.includes("\/playlist?list=")) return true;
     else return false;
 }
 
+/**
+ * Clean youtube url for the annoying list=LL&index=[0-9] parameters
+ * @param {string} url 
+ * @returns {string}
+ */
 function sanitizeUrl(url) {
     if (isPlaylist(url)) return url;
     return url.replace(/\?list=LL|\?list=LL&index=[0-9]/ig, "");
 }
 
+/**
+ * Check if a url is a youtube url
+ * @param {string} url 
+ * @returns 
+ */
 function isYoutubeUrl(url) {
     if (url.match(/https:\/\/www\.youtube|https:\/\/youtu\.be|https:\/\/youtube\.com/ig)) return true;
     else return false;
@@ -164,13 +179,13 @@ app.post("/api/ffmpeg/clip", async (req, res) => {
         const body = req.body;
         const sessionId = body.sessionId;
         const downloadDestination = path.resolve(`./downloads/${sessionId}`);
-
+        
         const filename = `${downloadDestination}/${body.filename}`;
         const timestamps = body.timestamps;
         const title = body.title;
         const newPath = `${downloadDestination}/${title}.mp3`
         const f = await ffmpeg.createClip(filename, newPath, timestamps);
-        if (f && f > 0) return res.json({success: false, message: "failed to start ffmpeg"});
+        if (f && (f > 0 || f instanceof Error)) return res.json({success: false, message: "failed to start ffmpeg"});
         else return res.json({success: false, message: "split file"});
 
     } catch (error) {
@@ -237,6 +252,7 @@ app.delete("/api/ffmpeg/clip/cleanup", async (req, res) => {
         const sessionId = req.query.sessionId;
         const mediatype = req.query.mediatype;
 
+        // were assuming the filename for now. this is the format the frontent is sending
         const filePath = path.resolve(`./downloads/${sessionId}/${sessionId}_split.${mediatype}`);
         try {
             await fs.promises.access(filePath);

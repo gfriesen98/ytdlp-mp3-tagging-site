@@ -93,6 +93,7 @@
     <span style="float: right" id="cVer"></span>
     <span style="float: right" id="sId"></span>
   </span>
+
   <h1>Yt-dlp + Tag Editor</h1>
   <label>Youtube URL</label>
   <input type="text" name="url-input" id="url-input" />
@@ -100,14 +101,16 @@
 
   <button onclick="addQueueItem()" style="margin-top: 1%">Add to queue</button>
 
-  <button id="modalButton">Split video</button>
+  <button id="modalButton">Clip editor</button>
   <button onclick="startDownload()" id="dl-button" style="margin-top: 2%" disabled>Download</button>
 
+  <!-- Clip editor Modal -->
   <div id="modal" class="modal">
     <div class="modal-content">
-      <span class="close">&times;</span>
-      <h3>Split video</h3>
-      <p>Metadata</p>
+      <span class="close" id="close">&times;</span>
+      <h3>Clip editor</h3>
+      <p>Split or clip a youtube video by timestamps, useful for when people upload full albums</p>
+      <p>Metadata (MP3)</p>
       <input id="modalArtist" placeholder="artist"/>
       <input id="modalAlbum" placeholder="album"/>
       <input id="modalYear" placeholder="year"/>
@@ -122,16 +125,16 @@
           </tr>
         </thead>
         <tbody id="timestampBody">
-          <!-- <tr>
-            <td>ads</td>
-            <td>ads</td>
-          </tr> -->
+          <!-- populated -->
         </tbody>
       </table>
       <button id="timestampAdd">Add timestamp</button>
-      <button id="modalDownload">Submit</button>
+      <br/>
+      <br/>
+      <button id="modalDownload">Download & Clip</button>
     </div>
   </div>
+  <!--  -->
 
   <label for="dl-progress" id="dl-progress-label" style="margin: 2rem 0 0 0">Download not started</label>
   <progress id="dl-progress">progress</progress>
