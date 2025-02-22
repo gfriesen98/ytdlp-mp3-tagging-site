@@ -192,6 +192,10 @@ function downloadVideo(url, destination, filename, options = optionsTemplate) {
 
 /**
  * Use yt-dlp to get json output for a playlist
+ * 
+ * Resolves with array[object], rejects with boolean or instanceof Error
+ * 
+ * @async
  * @param {String} url youtube url
  * @returns {Promise}
  */
